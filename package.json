@@ -1,8 +1,8 @@
 {
-  "name": "restapi",
+  "name": "restAPI",
   "version": "1.0.0",
   "description": "with chalkers again",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,10 +10,14 @@
     "type": "git",
     "url": "git+https://github.com/mulgey/restAPI.git"
   },
-  "author": "mulgey",
+  "keywords": [],
+  "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/mulgey/restAPI/issues"
   },
-  "homepage": "https://github.com/mulgey/restAPI#readme"
+  "homepage": "https://github.com/mulgey/restAPI#readme",
+  "devDependencies": {
+    "express": "^4.16.4"
+  }
 }
