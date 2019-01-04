@@ -6,7 +6,15 @@ const app = express();
 
 // json lar ile ilgileniyoruz
 const jsonParser = require('body-parser').json; // sahip olduğu yeteneklerden json ile çalışmak istedik
-app.use(jsonParser()); // bundan sonraki tüm req ler işlendiğinde gövdesi json olarak parse lanacaktır, req.body den ulaşılabilir, süper
+app.use(jsonParser()); // bundan sonraki tüm req ler işlendiğinde gövdesi json olarak parse lanacaktır, req.body den ulaşılabilir, süper. routes vs bunun altında olsun lütfen
+
+// morgen lütfen
+const logger = require('morgan');
+app.use(logger("dev")); // bu sayede terminalimizde bol bol "HTTPVerb + URL + statusCode" bilgisi alacağız
+
+// routes u ithal edelim
+const routes = require('./routes');
+app.use('/questions', routes); // sadece questions yolağında çalışacak şekilde ayarladık
 
 /* MİDDLEWARE SHOWCASE
 app.use((req, res, next) => { // Route tanımlanmadığı için her şartta çalışır
