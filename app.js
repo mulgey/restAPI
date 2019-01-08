@@ -16,6 +16,23 @@ app.use(logger("dev")); // bu sayede terminalimizde bol bol "HTTPVerb + URL + st
 const routes = require('./routes');
 app.use('/questions', routes); // sadece questions yolağında çalışacak şekilde ayarladık
 
+// 404 ü yakalayıp, temel olan "error handler" a ilet
+app.use((req, res, next) => {
+    var err = new Error("Adresi bulamadık!")
+    err.status = 404;
+    next(err);
+});
+
+// temel Error Handler
+app.use((err, req, res, next) => { // sadece temel olanda "err" bulunur
+    res.status(err.status || 500); // hata nesnesinin status özelliği varsa, onu ayarlarız. Internal server error => undefined => 500
+    res.json({ // Hata kullanıcıya json olarak gönderilir
+        error: {
+            message: err.message
+        }
+    }); 
+});
+
 /* MİDDLEWARE SHOWCASE
 app.use((req, res, next) => { // Route tanımlanmadığı için her şartta çalışır
     console.log("Middleware, ilk örneği");

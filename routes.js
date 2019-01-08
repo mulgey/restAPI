@@ -61,7 +61,15 @@ router.delete('/:qID/answers/:aID', (req, res) => {
 // POST /questions/:qID/answers/:aID/vote-up
 // POST /questions/:qID/answers/:aID/vote-down
 // belirli bir cevabı oylayalım
-router.post('/:qID/answers/:aID/vote-:yol', (req, res) => {
+router.post('/:qID/answers/:aID/vote-:yol', (req, res, next) => { // araya MW koyarak, vote sonrasında rastgele bir kelimenin çalışmasını engellemeye çalıştık. 
+    if (req.params.yol.search(/^(up|down)$/) === -1) { // search un sonucu: 0,1,2 .. array olacaktır. Olumsuz ise -1 gelir.
+        var err = new Error("Adresi bulamadım!");
+        err.status = 404;
+        next(err);
+    } else {
+        next();
+    }
+}, (req, res) => {
     res.json({
         response: '/vote-' + req.params.yol + ' üzerinden bir POST talebi geldi sanki',
         questionId: req.params.qID,
