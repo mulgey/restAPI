@@ -16,6 +16,22 @@ app.use(logger("dev")); // bu sayede terminalimizde bol bol "HTTPVerb + URL + st
 const routes = require('./routes');
 app.use('/questions', routes); // sadece questions yolağında çalışacak şekilde ayarladık
 
+// MONGOOSE HERE
+// mongoose kurulumu
+const mongoose = require('mongoose');
+mongoose.connect("mongodb://localhost:27017/QA");
+const db = mongoose.connection;
+
+// hata yönetimi
+db.on("error", (err) => {
+    console.error("connection error:", err)
+});
+
+db.once("open", () => { // db.on olay her cerayan ettiğinde çalışırken, db.once sadece ilkinde tek sefer için çalışır. bazı hallerde iyi gider.
+    console.log("db bağlandı, haberin olsun");
+    // Veritabanına ilişkin bütün iletişim buraya lütfen.
+});
+
 // 404 ü yakalayıp, temel olan "error handler" a ilet
 app.use((req, res, next) => {
     var err = new Error("Adresi bulamadık!")
