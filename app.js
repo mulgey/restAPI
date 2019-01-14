@@ -34,7 +34,7 @@ db.once("open", () => { // db.on olay her cerayan ettiğinde çalışırken, db.
 
 // 404 ü yakalayıp, temel olan "error handler" a ilet
 app.use((req, res, next) => {
-    var err = new Error("Adresi bulamadık!")
+    var err = new Error("Adresi bulamadık!");
     err.status = 404;
     next(err);
 });
