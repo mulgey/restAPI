@@ -4,26 +4,59 @@
 const express = require('express');
 const router = express.Router();
 
-// GET /questions 
-// soruları görelim
-router.get('/', (req, res) => { // kullanıcıya yanıtın gönderileceği son durak olduğu için next i kullanmadık. hata ile ilişkili olsaydı kullanırdık.
-    res.json({response: "GET talebi geldi sanırım."});
-});
+// models.js ten çekme vakti
+const Question = require("./models").Question; // Question olarak ihraç etmiştik.
 
-// GET /questions/:id
-// seçtiğimiz soruyu görelim
-router.get('/:qID', (req, res) => {
-    res.json({
-        response: req.params.qID + " ID'si için bir GET talebi geldi sanırım.",
+// seçtiğimiz soruyu görelim için geliştirdiğimiz metod
+router.param("qID", function(req, res, next, id) { // 1)route parametresinin ismi 2)callback func.(qID varlığında icraa edilecektir) id değeri route parametresinden edinilir.
+    Question.findById(id, function(err, doc) { // soru dokümanını yükledik
+        if(err) return next(err);
+        if(!doc) { // doküman bulunmazsa özel hata durumu tanımladık
+            err = new Error("Dokümanı bulamadık.");
+            err.status = 404;
+            return next(err);
+        }
+        req.question = doc; // eğer varsa, req nesnesine ayarlarız, bu talebi alan diğer MW ve route handlers ın işini görsün diye
+        next(); // sonraki MW ye paslarız
     });
 });
 
+// GET /questions 
+// soruları görelim
+router.get('/', (req, res, next) => {
+    // Soruların hepsinin, oluşturulma zamanına göre (en güncel en üstte) gelmesini istiyoruz
+    Question.find({}) // Tüm sonuçları aldık..            
+            .sort({createdAt: -1}) // ..sıraladık ve icraa etmeye hazır hale getirdik. Sonrasında istediğin kadar ekleyebilirsin. Biz 1 tane ölçüt kullandık
+            .exec((err, questions) => { // ..fonksiyonumuzu ateşledik
+                if (err) return next(err);
+                res.json(questions); // sorun yoksa fonksiyondaki callback kelimesi ile gönder kullanıcıya
+            });
+});
+
+/* Üsttekine alternatif kısım, ama kullanmadık
+router.get('/', (req, res, next) => {
+    // Soruların hepsinin, oluşturulma zamanına göre (en güncel en üstte) gelmesini istiyoruz
+    Question.find({}, null, {sort: {createdAt: -1}}, (err, questions) => { // null = kısım kısım göstermeyi iptal etmek ve tam doküman almak amacıyla. Zorunlu
+        if (err) return next(err);
+        res.json(questions); // sorun yoksa fonksiyondaki callback kelimesi ile gönder kullanıcıya
+    });
+});
+*/
+
+// GET /questions/:qID
+// seçtiğimiz soruyu görelim
+router.get('/:qID', (req, res, next) => {
+        res.json(req.question) // dokümanı kullanıcıya gönderdik.   
+    }); 
+
 // POST /questions 
 // soru oluşturalım
-router.post('/', (req, res) => {
-    res.json({
-        response: 'POST talebi geldi sanırım.',
-        body: req.body
+router.post('/', (req, res, next) => {
+    const question = new Question(req.body); // gelen veriyi const ladık..
+    question.save(function(err, question) { // ..kaydedip fonksiyonu başlattık
+        if (err) return next(err);
+        res.status(201); // kullanıcıya başarılı kodu göndermek istedik
+        res.json(question)
     });
 });
 
