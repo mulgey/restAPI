@@ -16,9 +16,20 @@ router.param("qID", function(req, res, next, id) { // 1)route parametresinin ism
             err.status = 404;
             return next(err);
         }
-        req.question = doc; // eğer varsa, req nesnesine ayarlarız, bu talebi alan diğer MW ve route handlers ın işini görsün diye
+        req.question = doc; // eğer varsa, req nesnesine ayarlarız, talebi alan diğer MW ve route handlers ın işini görsün diye
         next(); // sonraki MW ye paslarız
     });
+});
+
+//belirli bir cevap için geliştirmiş olduğumuz metod
+router.param("aID", function(req, res, next, id) {
+    req.answer = req.question.answers.id(id); // id metodu, alt dokümanın ID'sini alır ve eşleşen bu ID ile dokümanı geri gönderir
+    if (!req.answer) {
+        err = new Error("Dokümanı bulamadık.");
+        err.status = 404;
+        return next(err)
+    }
+    next();
 });
 
 // GET /questions 
@@ -62,32 +73,40 @@ router.post('/', (req, res, next) => {
 
 // POST /questions/:qID/answers 
 // cevap oluşturalım
-router.post('/:qID/answers', (req, res) => {
-    res.json({
-        response: '/answers yoluna bir POST talebi geldi sanırım.',
-        questionId: req.params.qID,
-        body: req.body
+router.post('/:qID/answers', (req, res, next) => {
+    req.question.answers.push(req.body); // seçtiğimi sorunun (req.quest) cevaplarına (answers), girdiğimiz datayı ekle
+    req.question.save( function(err, question) { // oluşturduğumuz dökümanı kaydet
+        if (err) return next(err);
+        res.status(201); // kullanıcıya kaynak başarıyla oluşturuldu dedik..
+        res.json(question) // ..ve kaynağı gönderdik 
     });
 });
 
 // PUT /questions/:qID/answers/:aID
 // belirli bir cevabı değiştirelim
 router.put('/:qID/answers/:aID', (req, res) => {
+    req.answer.update(req.body, function(err, results) {
+        if (err) return next(err);
+        res.json(results);
+    });
+    /* EĞİTİM AMAÇLIYDI
     res.json({
         response: '/answers yoluna bir PUT talebi geldi sanırım.',
         questionId: req.params.qID,
         answerID: req.params.aID,
         body: req.body
     });
+    */
 });
 
 // DELETE /questions/:qID/answers/:aID
 // belirli bir cevabı silelim
 router.delete('/:qID/answers/:aID', (req, res) => {
-    res.json({
-        response: '/answers yoluna bir DELETE talebi geldi sanırım.',
-        questionId: req.params.qID,
-        answerID: req.params.aID
+    req.answer.remove( function(err) {
+        req.question.save( function(err, question) { // parent question ı kaydederiz
+            if (err) return next(err);
+            res.json(question); // kaydettiğimiz haliyle de göndeririz
+        });
     });
 });
 
@@ -100,15 +119,21 @@ router.post('/:qID/answers/:aID/vote-:yol', (req, res, next) => { // araya MW ko
         err.status = 404;
         next(err);
     } else {
+        req.vote = req.params.yol; // kolay anlaşılması amacıyla yazdık, aşağıda kullanıyoruz (?)
         next();
     }
-}, (req, res) => {
-    res.json({
+}, (req, res, next) => {
+        req.answer.vote(req.vote, function(err, question) { // vote metodumuzu answer üzerinde kullandık
+            if (err) return next(err);
+            res.json(question);   
+        });
+    /* res.json({ EĞİTİM AMAÇLIYDI
         response: '/vote-' + req.params.yol + ' üzerinden bir POST talebi geldi sanki',
         questionId: req.params.qID,
         answerID: req.params.aID,
         vote: req.params.yol
     });
+    */
 });
 
 //ihraç ediyoruz
