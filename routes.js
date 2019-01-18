@@ -7,16 +7,17 @@ const router = express.Router();
 // models.js ten çekme vakti
 const Question = require("./models").Question; // Question olarak ihraç etmiştik.
 
-// seçtiğimiz soruyu görelim için geliştirdiğimiz metod
-router.param("qID", function(req, res, next, id) { // 1)route parametresinin ismi 2)callback func.(qID varlığında icraa edilecektir) id değeri route parametresinden edinilir.
-    Question.findById(id, function(err, doc) { // soru dokümanını yükledik
+// seçtiğimiz soruyu görelim için geliştirdiğimiz metod. qID olduğunda çalışacaktır
+router.param("qID", function(req, res, next, id) { // 1)route parametresinin ismi 2)callback func.(qID varlığında icraa edilecektir) id değeri adres çubuğundan alınan qID değeri.
+    Question.findById(id, function(err, doc) { // soru dokümanını yükledik. ("id" yerine "req.params.id" vardı fakat router.param şimdi o işi görüyor)
         if(err) return next(err);
         if(!doc) { // doküman bulunmazsa özel hata durumu tanımladık
             err = new Error("Dokümanı bulamadık.");
-            err.status = 404;
+            err.status = 404; // status tanımlamayı unutmayalım, error handler bakacaktır
             return next(err);
         }
-        req.question = doc; // eğer varsa, req nesnesine ayarlarız, talebi alan diğer MW ve route handlers ın işini görsün diye
+        // soo.. req.quest is the question of the current request from now on
+        req.question = doc; // eğer varsa, req nesnesine atamasını yaparız, talepte bulunan diğer MW ve route handler ların da işini görsün diye.
         next(); // sonraki MW ye paslarız
     });
 });
@@ -47,7 +48,7 @@ router.get('/', (req, res, next) => {
 /* Üsttekine alternatif kısım, ama kullanmadık
 router.get('/', (req, res, next) => {
     // Soruların hepsinin, oluşturulma zamanına göre (en güncel en üstte) gelmesini istiyoruz
-    Question.find({}, null, {sort: {createdAt: -1}}, (err, questions) => { // null = kısım kısım göstermeyi iptal etmek ve tam doküman almak amacıyla. Zorunlu
+    Question.find({}, null, {sort: {createdAt: -1}}, (err, questions) => { // null = opsiyonlu alanı kullanmak istemediğimizi belirtmek için. Zorunlu
         if (err) return next(err);
         res.json(questions); // sorun yoksa fonksiyondaki callback kelimesi ile gönder kullanıcıya
     });
@@ -57,7 +58,8 @@ router.get('/', (req, res, next) => {
 // GET /questions/:qID
 // seçtiğimiz soruyu görelim
 router.get('/:qID', (req, res, next) => {
-        res.json(req.question) // dokümanı kullanıcıya gönderdik.   
+        // arama ve hata işleri yukarıda hallediliyor zaten..
+        res.json(req.question) // .. yukarıdaki handler ı çalıştırıp dokümanı kullanıcıya gönderdik.   
     }); 
 
 // POST /questions 
@@ -67,14 +69,14 @@ router.post('/', (req, res, next) => {
     question.save(function(err, question) { // ..kaydedip fonksiyonu başlattık
         if (err) return next(err);
         res.status(201); // kullanıcıya başarılı kodu göndermek istedik
-        res.json(question)
+        res.json(question) // dokümanı kullancıya json olarak geri gönderdik
     });
 });
 
 // POST /questions/:qID/answers 
 // cevap oluşturalım
 router.post('/:qID/answers', (req, res, next) => {
-    req.question.answers.push(req.body); // seçtiğimi sorunun (req.quest) cevaplarına (answers), girdiğimiz datayı ekle
+    req.question.answers.push(req.body); // istediğimiz soruya (req.quest) ve cevaplarına (answers) ulaştık, şimdi girdiğimiz datayı ekle
     req.question.save( function(err, question) { // oluşturduğumuz dökümanı kaydet
         if (err) return next(err);
         res.status(201); // kullanıcıya kaynak başarıyla oluşturuldu dedik..
@@ -85,6 +87,7 @@ router.post('/:qID/answers', (req, res, next) => {
 // PUT /questions/:qID/answers/:aID
 // belirli bir cevabı değiştirelim
 router.put('/:qID/answers/:aID', (req, res) => {
+    // models.js de update metodunu tanımlamıştık 
     req.answer.update(req.body, function(err, results) {
         if (err) return next(err);
         res.json(results);
@@ -102,8 +105,9 @@ router.put('/:qID/answers/:aID', (req, res) => {
 // DELETE /questions/:qID/answers/:aID
 // belirli bir cevabı silelim
 router.delete('/:qID/answers/:aID', (req, res) => {
+    //req.answer zaten önceden tanımladığımız haliyle, bize ID ye uygun cevabı getirdi
     req.answer.remove( function(err) {
-        req.question.save( function(err, question) { // parent question ı kaydederiz
+        req.question.save( function(err, question) { // iç fonksiyon içerisinde parent question ı kaydederiz
             if (err) return next(err);
             res.json(question); // kaydettiğimiz haliyle de göndeririz
         });
@@ -119,13 +123,15 @@ router.post('/:qID/answers/:aID/vote-:yol', (req, res, next) => { // araya MW ko
         err.status = 404;
         next(err);
     } else {
-        req.vote = req.params.yol; // kolay anlaşılması amacıyla yazdık, aşağıda kullanıyoruz (?)
+        // req.question ve req.answer varken req.vote neden olmasın; hemen tanımladık
+        req.vote = req.params.yol;
         next();
     }
 }, (req, res, next) => {
-        req.answer.vote(req.vote, function(err, question) { // vote metodumuzu answer üzerinde kullandık
+        // models.js te yazdığımız vote instance'ı, req.answer üzerinde kullanalım
+        req.answer.vote(req.vote, function(err, question) {
             if (err) return next(err);
-            res.json(question);   
+            res.json(question); // işlemleri kendisi halletti, kullanıcıya geri yolladık
         });
     /* res.json({ EĞİTİM AMAÇLIYDI
         response: '/vote-' + req.params.yol + ' üzerinden bir POST talebi geldi sanki',
@@ -137,4 +143,4 @@ router.post('/:qID/answers/:aID/vote-:yol', (req, res, next) => { // araya MW ko
 });
 
 //ihraç ediyoruz
-module.exports = router;
+module.exports = router; 
