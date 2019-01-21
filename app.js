@@ -12,6 +12,19 @@ app.use(jsonParser()); // bundan sonraki tüm req ler işlendiğinde gövdesi js
 const logger = require('morgan');
 app.use(logger("dev")); // bu sayede terminalimizde bol bol "HTTPVerb + URL + statusCode" bilgisi alacağız
 
+// cross-origin-requests
+app.use((req, res, next) => {
+    // erişimi kontrol etmek için direkt "kafa"yı hedef alıyoruz
+    res.header("Access-Control-Allow-Origin", "*"); // "Erişim-kontrol ibaresi", "tam serbestlik"
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept"); // "Hangi başlıklara erişim", "Standart başlık seti"
+    // Grant pre-flight request's permisson
+    if (req.method === "OPTIONS") {
+        res.header("Access-Control-Allow-Headers", "PUT, POST, DELETE");
+        return res.status(200).json({});
+    }
+    next();
+})
+
 // routes u ithal edelim
 const routes = require('./routes');
 app.use('/questions', routes); // sadece questions yolağında çalışacak şekilde ayarladık
